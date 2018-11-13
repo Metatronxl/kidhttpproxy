@@ -2,6 +2,8 @@ package com.xulei.kidhttpproxy.handler;
 
 import com.xulei.kidhttpproxy.config.ProxyConfig;
 import com.xulei.kidhttpproxy.factory.BootstrapFactory;
+import com.xulei.kidhttpproxy.initializer.HttpConnectChannelInitializer;
+import com.xulei.kidhttpproxy.initializer.HttpsConnectChannelInitializer;
 import com.xulei.kidhttpproxy.listener.HttpChannelFutureListener;
 import com.xulei.kidhttpproxy.listener.HttpsChannelFutureListener;
 import com.xulei.kidhttpproxy.main.ProxyServer;
@@ -18,6 +20,7 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.net.InetSocketAddress;
 import java.util.Objects;
@@ -57,6 +60,11 @@ public class ProxyServerHandler extends ChannelInboundHandlerAdapter{
     }
 
     @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        log.info(LOG_PRE + ",通道激活.", ProxyUtil.getChannelId(ctx));
+    }
+
+    @Override
     public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
         log.info(LOG_PRE + "读取完成.", ProxyUtil.getChannelId(ctx));
     }
@@ -74,6 +82,8 @@ public class ProxyServerHandler extends ChannelInboundHandlerAdapter{
     @Override
     public void channelRead(ChannelHandlerContext ctx,Object msg) throws InterruptedException {
         String channelId = ProxyUtil.getChannelId(ctx);
+
+
 
         try {
 
@@ -95,9 +105,11 @@ public class ProxyServerHandler extends ChannelInboundHandlerAdapter{
                        return;
 
                    //此处将用于报文编码解码的处理器去除,因为后面上方的信息都是加密过的,不符合一般报文格式,我们直接转发即可
-                   ctx.pipeline().remove(ProxyServer.NAME_HTTP_ENCODE_HANDLER1);
-                   ctx.pipeline().remove(ProxyServer.NAME_HTTP_DECODE_HANDLER);
-                   ctx.pipeline().remove(ProxyServer.NAME_HTTP_AGGREGATOR_HANDLER);
+//                   ctx.pipeline().remove(ProxyServer.NAME_HTTP_ENCODE_HANDLER1);
+//                   ctx.pipeline().remove(ProxyServer.NAME_HTTP_DECODE_HANDLER);
+                   ctx.pipeline().remove(ProxyServer.NAME_HTTPSERVER_CODEC);
+                   //TODO 不确定聚合是否应该去掉
+//                   ctx.pipeline().remove(ProxyServer.NAME_HTTP_AGGREGATOR_HANDLER);
 
                    //此时 客户端已经和目标服务器 建立连接(其实是 客户端 -> 代理服务器 -> 目标服务器),
                    //直接退出等待下一次双方连接即可.
@@ -166,12 +178,12 @@ public class ProxyServerHandler extends ChannelInboundHandlerAdapter{
     private ChannelFuture connect(boolean isHttp,InetSocketAddress address,ChannelHandlerContext ctx,Object msg){
         Bootstrap bootstrap = bootstrapFactory.build();
         if (isHttp){
-            return bootstrap.handler(new HttpConnectHandler(ctx))
+            return bootstrap.handler(new HttpConnectChannelInitializer(ctx))
                     .connect(address)
                     .addListener(new HttpChannelFutureListener(msg,ctx));
         }
         //如果为https请求
-        return bootstrap.handler(new HttpConnectHandler(ctx))
+        return bootstrap.handler(new HttpsConnectChannelInitializer(ctx))
                 .connect(address)
                 .addListener(new HttpsChannelFutureListener(msg,ctx));
     }

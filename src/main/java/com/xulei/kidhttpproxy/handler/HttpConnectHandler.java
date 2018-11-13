@@ -25,6 +25,7 @@ public class HttpConnectHandler extends ChannelInboundHandlerAdapter {
      * 用于将目标主机响应的消息 发送回 客户端
      */
     private final ChannelHandlerContext ctx;
+
     public HttpConnectHandler(ChannelHandlerContext ctx) {
         this.ctx = ctx;
     }

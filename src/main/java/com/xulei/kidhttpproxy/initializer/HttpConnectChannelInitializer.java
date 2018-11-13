@@ -32,6 +32,11 @@ public class HttpConnectChannelInitializer extends ChannelInitializer<SocketChan
 
     private static ProxyConfig proxyConfig;
 
+    public HttpConnectChannelInitializer(ChannelHandlerContext ctx) {
+        this.ctx = ctx;
+    }
+
+
     @Override
     protected void initChannel(SocketChannel ch) throws Exception {
         ch.pipeline()

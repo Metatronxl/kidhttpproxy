@@ -1,6 +1,7 @@
 package com.xulei.kidhttpproxy.main;
 
 import com.xulei.kidhttpproxy.config.ProxyConfig;
+import com.xulei.kidhttpproxy.handler.PreServerHandler;
 import com.xulei.kidhttpproxy.handler.ProxyServerHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
@@ -10,10 +11,9 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpRequestDecoder;
-import io.netty.handler.codec.http.HttpRequestEncoder;
-import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.codec.http.*;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.checkerframework.checker.units.qual.A;
@@ -34,6 +34,7 @@ public class ProxyServer {
     public static final String NAME_HTTP_ENCODE_HANDLER1 = "httpCode_decode";
     public static final String NAME_HTTP_AGGREGATOR_HANDLER = "httpAggregator";
     public static final String NAME_PROXY_SERVER_HANDLER = "proxyServerHandler";
+    public static final String NAME_HTTPSERVER_CODEC = "httpserver_codec";
 
     @Autowired
     private final ProxyConfig proxyConfig;
@@ -61,9 +62,18 @@ public class ProxyServer {
                     @Override
                     protected void initChannel(SocketChannel ch) throws Exception {
                         ch.pipeline()
-                                .addLast(NAME_HTTP_DECODE_HANDLER,new HttpRequestDecoder())
-                                .addLast(NAME_HTTP_ENCODE_HANDLER1,new HttpResponseEncoder())
-                                .addLast(NAME_HTTP_AGGREGATOR_HANDLER,new HttpObjectAggregator(65536))
+//                                .addLast(NAME_HTTP_DECODE_HANDLER,new HttpRequestDecoder())
+//                                .addLast(NAME_HTTP_ENCODE_HANDLER1,new HttpResponseEncoder())
+//                                .addLast(new PreServerHandler())
+//                                .addLast(new LoggingHandler(LogLevel.INFO))
+                                .addLast(NAME_HTTPSERVER_CODEC,new HttpServerCodec())
+                                /**
+                                 * /**usually we receive http message infragment,if we want full http message,
+                                 * we should bundle HttpObjectAggregator and we can get FullHttpRequest。
+                                 * 我们通常接收到的是一个http片段，如果要想完整接受一次请求的所有数据，我们需要绑定HttpObjectAggregator，然后我们
+                                 * 就可以收到一个FullHttpRequest-是一个完整的请求信息。
+                                 **/
+                                .addLast(NAME_HTTP_AGGREGATOR_HANDLER,new HttpObjectAggregator(1024*1024)) //定义缓冲区数据量大小
                                 .addLast(NAME_PROXY_SERVER_HANDLER, proxyServerHandler);
 
                     }
