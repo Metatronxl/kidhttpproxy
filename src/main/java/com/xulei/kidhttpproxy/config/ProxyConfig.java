@@ -25,7 +25,7 @@ public class ProxyConfig {
 	public static final String HOST_SEPARATOR = ":";
 
 	/**
-	 * socket 连接相关参数
+	 *  连接相关参数
 	 */
 	@Valid
 	private SocketConfig socket = new SocketConfig();
